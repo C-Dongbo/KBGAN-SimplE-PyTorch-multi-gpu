@@ -20,6 +20,11 @@
 
 
 
+## eval (Continually updated)
+* WN18 on ComplEx (simgle model) : Test_H@1 = 0.7367 , Test_H@10 = 0.9450
+* WN18 on SimplE (single model) : Test_H@1 = 0.7800, Test_H@10 = 0.9460
+
+
 
 
 ## Dependencies
@@ -36,8 +41,10 @@ python pretrain.py --config=config_wn18.yaml --pretrain_config=TransE
 python pretrain.py --config=config_wn18.yaml --pretrain_config=SimplE  
 (this will generate a pretrained model file)
 * Adversarial train(for example):  
- python gan_train.py --config=config_wn18.yaml --g_config=SimplE --d_config=TransE  
+ python gan_train.py --config=config_wn18.yaml --g_config=SimplE --d_config=TransE
 (make sure that G model and D model are both pretrained)   
+* Eval (for example):
+python gan_eval.py --config=config_wn18.yaml --g_config=TransE --d_config=SimplE --kbgan_config={"your gan model"}
 
 - - -
 Feel free to explore and modify parameters in config files. Default parameters are those used in experiments reported in the paper.  

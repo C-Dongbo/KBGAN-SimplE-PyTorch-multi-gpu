@@ -131,7 +131,7 @@ class BaseModel(object):
         logging.info('Test_MRR=%f, Test_MR=%f, Test_H@10=%f', mrr_tot / count, mr_tot / count, hit10_tot / count)
         return mrr_tot / count
 
-    def eval_link(self, test_data, n_ent, heads, tails, filt=False):
+    def eval_link(self, test_data, n_ent, heads, tails, filt=True):
 
         mrr_tot = 0
         mr_tot = 0
