@@ -5,10 +5,12 @@ import torch as t
 import torch.nn as nn
 import torch.nn.functional as f
 from config import config
+import torch
 from torch.optim import Adam, SGD, Adagrad
 from torch.autograd import Variable
 from data_utils import batch_by_num
 from base_model import BaseModel, BaseModule
+from select_gpu import select_gpu
 
 class TransDModule(BaseModule):
     def __init__(self, n_ent, n_rel, config):
@@ -28,6 +30,10 @@ class TransDModule(BaseModule):
             param.data.renorm_(2, 0, 1)
 
     def forward(self, src, rel, dst):
+#        src = src.to(torch.device("cuda:1"))
+#        rel = rel.to(torch.device("cuda:0"))
+#        dst = dst.to(torch.device("cuda:2"))
+
         src_proj = self.ent_embed(src) +\
                    t.sum(self.proj_ent_embed(src) * self.ent_embed(src), dim=-1, keepdim=True) * self.proj_rel_embed(rel)
         dst_proj = self.ent_embed(dst) +\
@@ -47,10 +53,14 @@ class TransDModule(BaseModule):
         for param in self.parameters():
             param.data.renorm_(2, 0, 1)
 
+
+
+
 class TransD(BaseModel):
     def __init__(self, n_ent, n_rel, config):
         super(TransD, self).__init__()
         self.mdl = TransDModule(n_ent, n_rel, config)
+        self.mdl = nn.DataParallel(self.mdl,device_ids=range(torch.cuda.device_count()),output_device=2)
         self.mdl.cuda()
         self.config = config
 
@@ -88,13 +98,14 @@ class TransD(BaseModel):
             for s0, r, t0, s1, t1 in batch_by_num(n_batch, src_cuda, rel_cuda, dst_cuda, src_corrupted, dst_corrupted,
                                                   n_sample=n_train):
                 self.mdl.zero_grad()
-                loss = t.sum(self.mdl.pair_loss(Variable(s0), Variable(r), Variable(t0), Variable(s1), Variable(t1)))
+                loss = t.sum(self.mdl.module.pair_loss(Variable(s0), Variable(r), Variable(t0), Variable(s1), Variable(t1)))
                 loss.backward()
                 optimizer.step()
-                self.mdl.constraint()
+                self.mdl.module.constraint()
                 epoch_loss += loss.data[0]
             logging.info('Epoch %d/%d, Loss=%f', epoch + 1, n_epoch, epoch_loss / n_train)
             if (epoch + 1) % self.config.epoch_per_test == 0:
+#                torch.cuda.set_device(2)
                 test_perf = tester()
                 if test_perf > best_perf:
                     self.save(os.path.join(config().task.dir, self.config.model_file))

@@ -43,6 +43,8 @@ class BaseModule(nn.Module):
 class BaseModel(object):
     def __init__(self):
         self.mdl = None # type: BaseModule
+        self.mdl = nn.DataParallel(self.mdl) # type: BaseModule
+        self.mdl = self.mdl.cuda()
         self.weight_decay = 0
 
     def save(self, filename):
@@ -59,7 +61,7 @@ class BaseModel(object):
         src_var = Variable(src.cuda())
         dst_var = Variable(dst.cuda())
 
-        logits = self.mdl.prob_logit(src_var, rel_var, dst_var) / temperature
+        logits = self.mdl.module.prob_logit(src_var, rel_var, dst_var) / temperature
         probs = nnf.softmax(logits)
         row_idx = torch.arange(0, n).type(torch.LongTensor).unsqueeze(1).expand(n, n_sample)
         sample_idx = torch.multinomial(probs, n_sample, replacement=True)
@@ -72,7 +74,7 @@ class BaseModel(object):
             reinforce_loss = -torch.sum(Variable(rewards) * log_probs[row_idx.cuda(), sample_idx.data])
             reinforce_loss.backward()
             self.opt.step()
-            self.mdl.constraint()
+            self.mdl.module.constraint()
         yield None
 
     def dis_step(self, src, rel, dst, src_fake, dst_fake, train=True):
@@ -83,28 +85,30 @@ class BaseModel(object):
         dst_var = Variable(dst.cuda())
         src_fake_var = Variable(src_fake.cuda())
         dst_fake_var = Variable(dst_fake.cuda())
-        losses = self.mdl.pair_loss(src_var, rel_var, dst_var, src_fake_var, dst_fake_var)
-        fake_scores = self.mdl.score(src_fake_var, rel_var, dst_fake_var)
+        losses = self.mdl.module.pair_loss(src_var, rel_var, dst_var, src_fake_var, dst_fake_var)
+        fake_scores = self.mdl.module.score(src_fake_var, rel_var, dst_fake_var)
         if train:
             self.mdl.zero_grad()
             torch.sum(losses).backward()
             self.opt.step()
-            self.mdl.constraint()
+            self.mdl.module.constraint()
         return losses.data, -fake_scores.data
 
     def test_link(self, test_data, n_ent, heads, tails, filt=False):
+#        self.mdl = nn.DataParallel(self.mdl)
+#        self.mdl = self.mdl.cuda()
         mrr_tot = 0
         mr_tot = 0
         hit10_tot = 0
         count = 0
         for batch_s, batch_r, batch_t in batch_by_size(config().test_batch_size, *test_data):
             batch_size = batch_s.size(0)
-            rel_var = batch_r.unsqueeze(1).expand(batch_size, n_ent).cuda()
-            src_var = batch_s.unsqueeze(1).expand(batch_size, n_ent).cuda()
-            dst_var = batch_t.unsqueeze(1).expand(batch_size, n_ent).cuda()
-            all_var = torch.arange(0, n_ent).unsqueeze(0).expand(batch_size, n_ent).type(torch.LongTensor).cuda()
-            batch_dst_scores = self.mdl.score(src_var, rel_var, all_var).data
-            batch_src_scores = self.mdl.score(all_var, rel_var, dst_var).data
+            rel_var = Variable(batch_r.unsqueeze(1).expand(batch_size, n_ent).cuda())
+            src_var = Variable(batch_s.unsqueeze(1).expand(batch_size, n_ent).cuda())
+            dst_var = Variable(batch_t.unsqueeze(1).expand(batch_size, n_ent).cuda())
+            all_var = Variable(torch.arange(0, n_ent).unsqueeze(0).expand(batch_size, n_ent).type(torch.LongTensor).cuda(), volatile=True)
+            batch_dst_scores = self.mdl.module.score(src_var, rel_var, all_var).data
+            batch_src_scores = self.mdl.module.score(all_var, rel_var, dst_var).data
             for s, r, t, dst_scores, src_scores in zip(batch_s, batch_r, batch_t, batch_dst_scores, batch_src_scores):
                 if filt:
                     if tails[(s.item(), r.item())]._nnz() > 1:

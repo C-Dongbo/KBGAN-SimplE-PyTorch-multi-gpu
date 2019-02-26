@@ -11,13 +11,14 @@ from trans_e import TransE
 from trans_d import TransD
 from distmult import DistMult
 from compl_ex import ComplEx
+from simplE import SimplE
 from logger_init import logger_init
 from select_gpu import select_gpu
 from corrupter import BernCorrupterMulti
 
 
 logger_init()
-torch.cuda.set_device(select_gpu())
+#torch.cuda.set_device(select_gpu())
 overwrite_config_with_args()
 dump_config()
 
@@ -27,12 +28,16 @@ kb_index = index_ent_rel(os.path.join(task_dir, 'train.txt'),
                          os.path.join(task_dir, 'test.txt'))
 n_ent, n_rel = graph_size(kb_index)
 
-models = {'TransE': TransE, 'TransD': TransD, 'DistMult': DistMult, 'ComplEx': ComplEx}
+models = {'TransE': TransE, 'TransD': TransD, 'DistMult': DistMult, 'ComplEx': ComplEx, 'SimplE': SimplE}
 gen_config = config()[config().g_config]
 dis_config = config()[config().d_config]
+
+print("gModel = ",gen_config, " dModel = ",dis_config)
+
 gen = models[config().g_config](n_ent, n_rel, gen_config)
 dis = models[config().d_config](n_ent, n_rel, dis_config)
 gen.load(os.path.join(task_dir, gen_config.model_file))
+print(os.path.join(task_dir, dis_config.model_file))
 dis.load(os.path.join(task_dir, dis_config.model_file))
 
 train_data = read_data(os.path.join(task_dir, 'train.txt'), kb_index)

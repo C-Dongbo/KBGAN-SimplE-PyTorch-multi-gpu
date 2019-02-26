@@ -44,6 +44,7 @@ class TransE(BaseModel):
     def __init__(self, n_ent, n_rel, config):
         super(TransE, self).__init__()
         self.mdl = TransEModule(n_ent, n_rel, config)
+        self.mdl = nn.DataParallel(self.mdl)
         self.mdl.cuda()
         self.config = config
 
