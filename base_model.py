@@ -4,7 +4,7 @@ import torch.nn.functional as nnf
 from config import config
 from torch.autograd import Variable
 from torch.optim import Adam
-from metrics import mrr_mr_hitk
+from metrics import mrr_mr_hitk, mrr_mr_hitk2
 from data_utils import batch_by_size
 import logging
 
@@ -94,7 +94,7 @@ class BaseModel(object):
             self.mdl.module.constraint()
         return losses.data, -fake_scores.data
 
-    def test_link(self, test_data, n_ent, heads, tails, filt=False):
+    def test_link(self, test_data, n_ent, heads, tails, filt=True):
 #        self.mdl = nn.DataParallel(self.mdl)
 #        self.mdl = self.mdl.cuda()
         mrr_tot = 0
@@ -129,4 +129,43 @@ class BaseModel(object):
                 hit10_tot += hit10
                 count += 2
         logging.info('Test_MRR=%f, Test_MR=%f, Test_H@10=%f', mrr_tot / count, mr_tot / count, hit10_tot / count)
+        return mrr_tot / count
+
+    def eval_link(self, test_data, n_ent, heads, tails, filt=False):
+
+        mrr_tot = 0
+        mr_tot = 0
+        hit10_tot = 0
+        hit1_tot = 0
+        count = 0
+        for batch_s, batch_r, batch_t in batch_by_size(config().test_batch_size, *test_data):
+            batch_size = batch_s.size(0)
+            rel_var = Variable(batch_r.unsqueeze(1).expand(batch_size, n_ent).cuda())
+            src_var = Variable(batch_s.unsqueeze(1).expand(batch_size, n_ent).cuda())
+            dst_var = Variable(batch_t.unsqueeze(1).expand(batch_size, n_ent).cuda())
+            all_var = Variable(torch.arange(0, n_ent).unsqueeze(0).expand(batch_size, n_ent).type(torch.LongTensor).cuda(), volatile=True)
+            batch_dst_scores = self.mdl.module.score(src_var, rel_var, all_var).data
+            batch_src_scores = self.mdl.module.score(all_var, rel_var, dst_var).data
+            for s, r, t, dst_scores, src_scores in zip(batch_s, batch_r, batch_t, batch_dst_scores, batch_src_scores):
+                if filt:
+                    if tails[(s.item(), r.item())]._nnz() > 1:
+                        tmp = dst_scores[t].item()
+                        dst_scores += tails[(s.item(), r.item())].cuda() * 1e30
+                        dst_scores[t] = tmp
+                    if heads[(t.item(), r.item())]._nnz() > 1:
+                        tmp = src_scores[s].item()
+                        src_scores += heads[(t.item(), r.item())].cuda() * 1e30
+                        src_scores[s] = tmp
+                mrr, mr, hit1, hit10 = mrr_mr_hitk2(dst_scores, t)
+                mrr_tot += mrr
+                mr_tot += mr
+                hit1_tot += hit1
+                hit10_tot += hit10
+                mrr, mr, hit1, hit10 = mrr_mr_hitk2(src_scores, s)
+                mrr_tot += mrr
+                mr_tot += mr
+                hit1_tot += hit1
+                hit10_tot += hit10
+                count += 2
+        logging.info('Test_MRR=%f, Test_MR=%f, Test_H@1=%f, Test_H@10=%f', mrr_tot / count, mr_tot / count, hit1_tot / count, hit10_tot / count)
         return mrr_tot / count
