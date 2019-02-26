@@ -1,5 +1,5 @@
 # KBGAN with TransE, TransD, ComplEx, SimplE
-## This repository is the using multi gpu pytorch-v0.4.1 to training KBGAN-SimplE implement version for KBGAN.
+## This repository is the using multi gpu pytorch-v0.4.1 to training KBGAN-SimplE implemented version for KBGAN Framework.
 
 > The origin repo: https://github.com/cai-lw/KBGAN
 > Liwei Cai and William Yang Wang, "KBGAN: Adversarial Learning for Knowledge Graph Embeddings", in *Proceedings of The 16th Annual Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies (NAACL HLT 2018)*.    
@@ -10,17 +10,19 @@
 
 
 
-##Summary
----
+## Summary
+- - -
 * In the existing KBGAN paper, experiments were conducted using ComplEx and Translation based models(TransE, TransD)
-* In addition, SimplE models were implemented in pytorch 0.4.1 version
+* In addition, SimplE models were implemented in pytorch 0.4.1 version. SimplE model has better performance than ComplEx.
 * And enabled SimplE model for the KBGAN Framework
 * The best performance is currently under testing.
 
 
+
+
 ## Dependencies
-* Python 3.6
-* PyTorch 0.4.1
+* Python 3.5
+* PyTorch 0.4.1 (cuda 9.0)
 * PyYAML
 * nvidia-smi
 
