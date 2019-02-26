@@ -13,9 +13,11 @@
 ## Summary
 - - -
 * In the existing KBGAN paper, experiments were conducted using ComplEx and Translation based models(TransE, TransD)
-* In addition, SimplE models were implemented in pytorch 0.4.1 version. SimplE model has better performance than ComplEx.
-* And enabled SimplE model for the KBGAN Framework
+* In addition, SimplE models were implemented in pytorch 0.4.1 version (multi gpu). SimplE model has better performance than ComplEx.
+* Maybe you do not necessary multi gpu training for benchmark dataset like WN18,fb15k. But you need to training using multi gpu for your own large scale dataset.
+* And enabled SimplE model for the KBGAN Framework.
 * The best performance is currently under testing.
+
 
 
 
