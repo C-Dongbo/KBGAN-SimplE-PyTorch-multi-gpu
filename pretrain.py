@@ -1,6 +1,7 @@
 import os
 import logging
 import torch
+import torch.nn as nn
 from corrupter import BernCorrupter, BernCorrupterMulti
 from read_data import index_ent_rel, graph_size, read_data
 from config import config, overwrite_config_with_args
@@ -11,9 +12,14 @@ from trans_e import TransE
 from trans_d import TransD
 from distmult import DistMult
 from compl_ex import ComplEx
+from simplE import SimplE
 
 logger_init()
-torch.cuda.set_device(select_gpu())
+#print(select_gpu())
+#torch.cuda.set_device(select_gpu())
+
+#device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 overwrite_config_with_args()
 
 task_dir = config().task.dir
@@ -30,6 +36,7 @@ heads, tails = heads_tails(n_ent, train_data, valid_data, test_data)
 valid_data = [torch.LongTensor(vec) for vec in valid_data]
 test_data = [torch.LongTensor(vec) for vec in test_data]
 tester = lambda: gen.test_link(valid_data, n_ent, heads, tails)
+#tester = nn.DataParallel(tester)
 train_data = [torch.LongTensor(vec) for vec in train_data]
 
 mdl_type = config().pretrain_config
@@ -46,6 +53,9 @@ elif mdl_type == 'DistMult':
 elif mdl_type == 'ComplEx':
     corrupter = BernCorrupterMulti(train_data, n_ent, n_rel, gen_config.n_sample)
     gen = ComplEx(n_ent, n_rel, gen_config)
+elif mdl_type == 'SimplE':
+    corrupter = BernCorrupterMulti(train_data, n_ent, n_rel, gen_config.n_sample)
+    gen = SimplE(n_ent, n_rel, gen_config)
 gen.pretrain(train_data, corrupter, tester)
 gen.load(os.path.join(task_dir, gen_config.model_file))
 gen.mdl.eval()
