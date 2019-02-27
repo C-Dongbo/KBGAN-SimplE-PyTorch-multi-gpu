@@ -100,6 +100,7 @@ class BaseModel(object):
         mrr_tot = 0
         mr_tot = 0
         hit10_tot = 0
+        hit1_tot = 0
         count = 0
         for batch_s, batch_r, batch_t in batch_by_size(config().test_batch_size, *test_data):
             batch_size = batch_s.size(0)
@@ -119,17 +120,20 @@ class BaseModel(object):
                         tmp = src_scores[s].item()
                         src_scores += heads[(t.item(), r.item())].cuda() * 1e30
                         src_scores[s] = tmp
-                mrr, mr, hit10 = mrr_mr_hitk(dst_scores, t)
+                mrr, mr, hit1, hit10 = mrr_mr_hitk2(dst_scores, t)
                 mrr_tot += mrr
                 mr_tot += mr
+                hit1_tot += hit1
                 hit10_tot += hit10
-                mrr, mr, hit10 = mrr_mr_hitk(src_scores, s)
+                mrr, mr, hit1, hit10 = mrr_mr_hitk2(src_scores, s)
                 mrr_tot += mrr
                 mr_tot += mr
+                hit1_tot += hit1
                 hit10_tot += hit10
                 count += 2
-        logging.info('Test_MRR=%f, Test_MR=%f, Test_H@10=%f', mrr_tot / count, mr_tot / count, hit10_tot / count)
-        return mrr_tot / count
+
+        logging.info('Test_MRR=%f, Test_MR=%f, Test_H@1=%f, Test_H@10=%f', mrr_tot.item() / count, mr_tot / count, hit1_tot / count, hit10_tot / count)
+        return mrr_tot.item() / count
 
     def eval_link(self, test_data, n_ent, heads, tails, filt=True):
 

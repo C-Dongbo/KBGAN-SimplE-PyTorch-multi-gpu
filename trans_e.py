@@ -72,17 +72,19 @@ class TransE(BaseModel):
             for s0, r, t0, s1, t1 in batch_by_num(n_batch, src_cuda, rel_cuda, dst_cuda, src_corrupted, dst_corrupted,
                                                   n_sample=n_train):
                 self.mdl.zero_grad()
-                loss = t.sum(self.mdl.pair_loss(s0, r, t0, s1, t1))
+                loss = t.sum(self.mdl.module.pair_loss(s0, r, t0, s1, t1))
                 loss.backward()
                 optimizer.step()
-                self.mdl.constraint()
+                self.mdl.module.constraint()
                 epoch_loss += loss.item()
             logging.info('Epoch %d/%d, Loss=%f', epoch + 1, n_epoch, epoch_loss / n_train)
             if (epoch + 1) % self.config.epoch_per_test == 0:
                 self.mdl.eval()
                 with t.no_grad():
                     test_perf = tester()
+                    print("test_perf = ",test_perf, " best_perf = ",best_perf)
                     if test_perf > best_perf:
+                        print("save model")
                         self.save(os.path.join(config().task.dir, self.config.model_file))
                         best_perf = test_perf
         return best_perf

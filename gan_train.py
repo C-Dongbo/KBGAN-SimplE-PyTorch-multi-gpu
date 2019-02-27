@@ -57,7 +57,7 @@ src, rel, dst = train_data
 n_train = len(src)
 n_epoch = config().adv.n_epoch
 n_batch = config().adv.n_batch
-mdl_name = 'gan_dis_' + datetime.datetime.now().strftime("%m%d%H%M%S") + '.mdl'
+mdl_name = 'gan_dis_' + datetime.datetime.now().strftime("%m%d%H%M%S") +'_gen_'+gen_config +'_dis_'+dis_config +'.mdl'
 best_perf = 0
 avg_reward = 0
 for epoch in range(n_epoch):

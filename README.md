@@ -22,7 +22,7 @@
 
 ## eval (Continually updated)
 * WN18 on ComplEx (simgle model) : Test_H@1 = 0.7367 , Test_H@10 = 0.9450
-* WN18 on SimplE (single model) : Test_H@1 = 0.7800, Test_H@10 = 0.9460
+* WN18 on SimplE (single model) : Test_H@1 = 0.8379, Test_H@10 = 0.9493
 
 
 
